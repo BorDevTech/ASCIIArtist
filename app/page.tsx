@@ -6,80 +6,255 @@ import {
   Container,
   Flex,
   Heading,
+  Input,
   Stack,
-  Textarea,
+  Text,
 } from '@chakra-ui/react'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 
-// Simple ASCII art generator function
-function generateAsciiArt(text: string, width: number, isColor: boolean): string {
-  if (!text.trim()) {
-    return ''
-  }
-
-  // ASCII characters from darkest to lightest
-  const asciiChars = isColor
-    ? ['@', '#', 'S', '%', '?', '*', '+', ';', ':', ',', '.', ' ']
-    : ['@', '#', '%', '*', '+', '=', '-', ':', '.', ' ']
-
-  const lines: string[] = []
-  const words = text.split(/\s+/)
-  let currentLine = ''
-
-  // Simple text wrapping
-  for (const word of words) {
-    if ((currentLine + word).length > width) {
-      if (currentLine) {
-        lines.push(currentLine.trim())
-        currentLine = word + ' '
-      } else {
-        lines.push(word.slice(0, width))
-        currentLine = word.slice(width) + ' '
-      }
-    } else {
-      currentLine += word + ' '
-    }
-  }
-  if (currentLine) {
-    lines.push(currentLine.trim())
-  }
-
-  // Convert text to ASCII art with a border
-  const maxLineLength = Math.min(
-    width,
-    lines.reduce((max, line) => Math.max(max, line.length), 0)
-  )
-  const border = asciiChars[0].repeat(maxLineLength + 4)
+// Convert ASCII art text to SVG
+function asciiToSvg(asciiText: string): string {
+  const lines = asciiText.split('\n')
+  const charWidth = 7
+  const charHeight = 14
+  const width = Math.max(...lines.map(line => line.length)) * charWidth
+  const height = lines.length * charHeight
   
-  const artLines = [border]
-  for (const line of lines) {
-    const paddedLine = line.padEnd(maxLineLength, ' ')
-    artLines.push(`${asciiChars[0]} ${paddedLine} ${asciiChars[0]}`)
-  }
-  artLines.push(border)
+  let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`
+  svgContent += '<rect width="100%" height="100%" fill="white"/>'
+  svgContent += '<text font-family="monospace" font-size="12" fill="black">'
+  
+  lines.forEach((line, index) => {
+    const y = (index + 1) * charHeight
+    svgContent += `<tspan x="0" y="${y}">${line.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&/g, '&amp;')}</tspan>`
+  })
+  
+  svgContent += '</text></svg>'
+  return svgContent
+}
 
-  return artLines.join('\n')
+// Advanced image-to-ASCII converter
+async function imageToAscii(
+  imageSource: string | File,
+  width: number,
+  isColor: boolean
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+
+    // ASCII characters from darkest to lightest (more detailed set)
+    const asciiChars = isColor
+      ? ['$', '@', 'B', '%', '8', '&', 'W', 'M', '#', '*', 'o', 'a', 'h', 'k', 'b', 'd', 'p', 'q', 'w', 'm', 'Z', 'O', '0', 'Q', 'L', 'C', 'J', 'U', 'Y', 'X', 'z', 'c', 'v', 'u', 'n', 'x', 'r', 'j', 'f', 't', '/', '\\', '|', '(', ')', '1', '{', '}', '[', ']', '?', '-', '_', '+', '~', '<', '>', 'i', '!', 'l', 'I', ';', ':', ',', '"', '^', '`', "'", '.', ' ']
+      : ['@', '#', 'S', '%', '?', '*', '+', ';', ':', ',', '.', ' ']
+
+    img.onload = () => {
+      // Create canvas for image processing
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'))
+        return
+      }
+
+      // Calculate dimensions maintaining aspect ratio
+      const aspectRatio = img.height / img.width
+      const targetWidth = width
+      const targetHeight = Math.floor(targetWidth * aspectRatio * 0.5) // 0.5 compensates for character height/width ratio
+
+      canvas.width = targetWidth
+      canvas.height = targetHeight
+
+      // Draw image to canvas
+      ctx.drawImage(img, 0, 0, targetWidth, targetHeight)
+
+      // Get pixel data
+      const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight)
+      const pixels = imageData.data
+
+      // Convert pixels to ASCII
+      let ascii = ''
+      for (let y = 0; y < targetHeight; y++) {
+        for (let x = 0; x < targetWidth; x++) {
+          const offset = (y * targetWidth + x) * 4
+          const r = pixels[offset]
+          const g = pixels[offset + 1]
+          const b = pixels[offset + 2]
+
+          // Calculate brightness (weighted average)
+          const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+
+          // Map brightness to ASCII character
+          const charIndex = Math.floor((1 - brightness) * (asciiChars.length - 1))
+          ascii += asciiChars[charIndex]
+        }
+        ascii += '\n'
+      }
+
+      resolve(ascii)
+    }
+
+    img.onerror = () => {
+      reject(new Error('Failed to load image'))
+    }
+
+    // Handle different image sources
+    if (typeof imageSource === 'string') {
+      img.src = imageSource
+    } else {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          img.src = e.target.result as string
+        }
+      }
+      reader.onerror = () => reject(new Error('Failed to read file'))
+      reader.readAsDataURL(imageSource)
+    }
+  })
 }
 
 export default function Home() {
-  const [inputText, setInputText] = useState('')
+  const [textDescription, setTextDescription] = useState('')
+  const [imageUrl, setImageUrl] = useState('')
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const [asciiArt, setAsciiArt] = useState('')
-  const [canvasSize, setCanvasSize] = useState('60')
-  const [colorMode, setColorMode] = useState('bw')
+  const [asciiSvg, setAsciiSvg] = useState('')
+  const [canvasSize, setCanvasSize] = useState('100')
+  const [colorMode, setColorMode] = useState('color')
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [error, setError] = useState('')
+  const [previewUrl, setPreviewUrl] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleGenerate = () => {
-    const width = parseInt(canvasSize)
-    const isColor = colorMode === 'color'
-    const art = generateAsciiArt(inputText, width, isColor)
-    setAsciiArt(art)
+  const handleGenerate = async () => {
+    setError('')
+    setIsGenerating(true)
+
+    try {
+      const width = parseInt(canvasSize)
+      const isColor = colorMode === 'color'
+
+      // Check if text description is provided (requires AI API integration)
+      if (textDescription.trim() && !imageFile && !imageUrl.trim()) {
+        setError('Text-to-image generation requires AI API integration. Please provide an image URL or upload an image file for now.')
+        setIsGenerating(false)
+        return
+      }
+
+      let art = ''
+      if (imageFile) {
+        art = await imageToAscii(imageFile, width, isColor)
+      } else if (imageUrl.trim()) {
+        art = await imageToAscii(imageUrl, width, isColor)
+      } else {
+        setError('Please provide an image description, image URL, or upload an image file')
+        setIsGenerating(false)
+        return
+      }
+
+      setAsciiArt(art)
+      // Convert to SVG
+      const svg = asciiToSvg(art)
+      setAsciiSvg(svg)
+    } catch (err) {
+      setError('Failed to generate ASCII art. Please check your image source.')
+      console.error(err)
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setImageFile(file)
+      setImageUrl('') // Clear URL when file is selected
+      setTextDescription('') // Clear text description
+      
+      // Create preview
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setPreviewUrl(event.target.result as string)
+        }
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value
+    setImageUrl(url)
+    if (url.trim()) {
+      setImageFile(null) // Clear file when URL is entered
+      setTextDescription('') // Clear text description
+      setPreviewUrl(url)
+    } else {
+      setPreviewUrl('')
+    }
+  }
+
+  const loadDemoImage = () => {
+    // Create a simple demo image using canvas
+    const canvas = document.createElement('canvas')
+    const CANVAS_WIDTH = 300
+    const CANVAS_HEIGHT = 200
+    const CENTER_X = CANVAS_WIDTH / 2
+    const CENTER_Y = CANVAS_HEIGHT / 2
+    const FACE_RADIUS = 60
+    const EYE_RADIUS = 8
+    const SMILE_RADIUS = 30
+    
+    canvas.width = CANVAS_WIDTH
+    canvas.height = CANVAS_HEIGHT
+    const ctx = canvas.getContext('2d')
+    
+    if (ctx) {
+      // Create a gradient background
+      const gradient = ctx.createLinearGradient(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+      gradient.addColorStop(0, '#1a1a1a')
+      gradient.addColorStop(0.5, '#4a4a4a')
+      gradient.addColorStop(1, '#8a8a8a')
+      ctx.fillStyle = gradient
+      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+      
+      // Draw a circle (simple face)
+      ctx.fillStyle = '#ffffff'
+      ctx.beginPath()
+      ctx.arc(CENTER_X, CENTER_Y, FACE_RADIUS, 0, Math.PI * 2)
+      ctx.fill()
+      
+      // Draw eyes
+      ctx.fillStyle = '#000000'
+      ctx.beginPath()
+      ctx.arc(CENTER_X - 20, CENTER_Y - 10, EYE_RADIUS, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.beginPath()
+      ctx.arc(CENTER_X + 20, CENTER_Y - 10, EYE_RADIUS, 0, Math.PI * 2)
+      ctx.fill()
+      
+      // Draw smile
+      ctx.strokeStyle = '#000000'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.arc(CENTER_X, CENTER_Y, SMILE_RADIUS, 0, Math.PI)
+      ctx.stroke()
+      
+      // Convert to data URL and set
+      const dataUrl = canvas.toDataURL('image/png')
+      setImageUrl(dataUrl)
+      setImageFile(null)
+      setPreviewUrl(dataUrl)
+    }
   }
 
   return (
     <Box h="100vh" display="flex" flexDirection="column">
-      <Container maxW="container.xl" py={4} flex="0 0 auto">
+      <Container maxW="container.xl" py={4} flex="0 0 auto" maxH="50vh" overflow="auto">
         <Stack gap={4} align="stretch">
           <Heading size="lg" textAlign="center">
-            ASCII Artist
+            ASCII Artist - Image to ASCII Converter
           </Heading>
 
           {/* Controls Section */}
@@ -98,16 +273,17 @@ export default function Home() {
                   width: '150px',
                 }}
               >
-                <option value="40">Small (40)</option>
-                <option value="60">Medium (60)</option>
-                <option value="80">Large (80)</option>
-                <option value="100">X-Large (100)</option>
+                <option value="60">Small (60)</option>
+                <option value="80">Medium (80)</option>
+                <option value="100">Large (100)</option>
+                <option value="120">X-Large (120)</option>
+                <option value="150">XX-Large (150)</option>
               </select>
             </Box>
 
             <Box>
               <Heading size="sm" mb={2}>
-                Color Mode
+                Character Set
               </Heading>
               <Stack direction="row" gap={4}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -117,7 +293,7 @@ export default function Home() {
                     checked={colorMode === 'bw'}
                     onChange={(e) => setColorMode(e.target.value)}
                   />
-                  B&W
+                  Simple
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <input
@@ -126,32 +302,122 @@ export default function Home() {
                     checked={colorMode === 'color'}
                     onChange={(e) => setColorMode(e.target.value)}
                   />
-                  Color
+                  Detailed
                 </label>
               </Stack>
             </Box>
           </Flex>
 
-          {/* Input Section */}
-          <Flex gap={2}>
-            <Textarea
-              placeholder="Enter text to convert to ASCII art..."
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              resize="vertical"
-              minH="100px"
-              flex="1"
-            />
+          {/* Image Input Section */}
+          <Stack gap={3}>
+            <Flex justify="space-between" align="center">
+              <Heading size="sm">Image Source</Heading>
+              <Button
+                size="sm"
+                variant="outline"
+                colorScheme="teal"
+                onClick={loadDemoImage}
+              >
+                Load Demo Image
+              </Button>
+            </Flex>
+            
+            <Box>
+              <Text fontSize="sm" mb={2}>Describe Image (AI generation - requires API):</Text>
+              <Input
+                placeholder="E.g., 'a butterfly on a flower' (Note: AI image generation not yet integrated)"
+                value={textDescription}
+                onChange={(e) => setTextDescription(e.target.value)}
+                size="md"
+              />
+              <Text fontSize="xs" color="gray.500" mt={1}>
+                Note: Text-to-image generation requires AI API integration (e.g., DALL-E, Stable Diffusion). 
+                For now, please use image URL or file upload.
+              </Text>
+            </Box>
+
+            <Flex align="center" gap={2}>
+              <Box w="100%" h="1px" bg="gray.300" />
+              <Text fontSize="sm" color="gray.500">OR</Text>
+              <Box w="100%" h="1px" bg="gray.300" />
+            </Flex>
+
+            <Box>
+              <Text fontSize="sm" mb={2}>Image URL:</Text>
+              <Input
+                placeholder="Enter image URL (e.g., https://example.com/image.jpg)"
+                value={imageUrl}
+                onChange={handleUrlChange}
+                size="md"
+              />
+            </Box>
+
+            <Flex align="center" gap={2}>
+              <Box w="100%" h="1px" bg="gray.300" />
+              <Text fontSize="sm" color="gray.500">OR</Text>
+              <Box w="100%" h="1px" bg="gray.300" />
+            </Flex>
+
+            <Box>
+              <Text fontSize="sm" mb={2}>Upload Image:</Text>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                style={{
+                  padding: '8px',
+                  borderRadius: '6px',
+                  border: '1px solid #E2E8F0',
+                  width: '100%',
+                }}
+              />
+            </Box>
+
+            {/* Image Preview */}
+            {previewUrl && (
+              <Box>
+                <Text fontSize="sm" mb={2}>Preview:</Text>
+                <Box
+                  borderRadius="md"
+                  border="1px solid"
+                  borderColor="gray.200"
+                  overflow="hidden"
+                  maxW="300px"
+                  maxH="200px"
+                >
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                  />
+                </Box>
+              </Box>
+            )}
+
+            {error && (
+              <Box
+                p={3}
+                bg="red.50"
+                borderRadius="md"
+                border="1px solid"
+                borderColor="red.200"
+              >
+                <Text color="red.700" fontSize="sm">{error}</Text>
+              </Box>
+            )}
+
             <Button
               colorScheme="blue"
               onClick={handleGenerate}
-              alignSelf="flex-start"
+              loading={isGenerating}
+              loadingText="Generating..."
               size="lg"
-              px={8}
+              w="100%"
             >
-              Generate
+              Generate ASCII Art
             </Button>
-          </Flex>
+          </Stack>
         </Stack>
       </Container>
 
@@ -162,6 +428,7 @@ export default function Home() {
         overflow="auto"
         borderTop="2px solid"
         borderColor="gray.200"
+        minH="0"
       >
         <Container maxW="container.xl" py={4} h="100%">
           <Box
@@ -172,11 +439,39 @@ export default function Home() {
             borderColor="gray.200"
             h="100%"
             overflow="auto"
-            fontFamily="monospace"
-            fontSize="sm"
-            whiteSpace="pre"
+            display="flex"
+            justifyContent="center"
+            alignItems="flex-start"
           >
-            {asciiArt || 'Your ASCII art will appear here...'}
+            {asciiSvg ? (
+              <Box 
+                dangerouslySetInnerHTML={{ __html: asciiSvg }}
+                css={{
+                  '& svg': {
+                    maxWidth: '100%',
+                    height: 'auto',
+                    display: 'block'
+                  }
+                }}
+              />
+            ) : (
+              <Box
+                fontFamily="monospace"
+                fontSize="xs"
+                whiteSpace="pre"
+                lineHeight="1.0"
+                color="gray.500"
+              >
+                Your ASCII art will appear here...
+                {'\n\n'}
+                Tip: Try these example images:
+                {'\n'}- Butterfly: https://images.unsplash.com/photo-1526336024174-e58f5cdd8e13?w=800
+                {'\n'}- Portrait: https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800
+                {'\n'}- Landscape: https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800
+                {'\n\n'}
+                Or use the &quot;Load Demo Image&quot; button above to test
+              </Box>
+            )}
           </Box>
         </Container>
       </Box>

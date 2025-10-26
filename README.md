@@ -1,14 +1,27 @@
 # ASCIIArtist
 
-A modern web application for generating ASCII art from text, built with Next.js 15 and Chakra UI v3.
+A modern web application for generating high-quality ASCII art from images, built with Next.js 15 and Chakra UI v3.
 
 ## Features
 
-- 🎨 **Canvas Size Selection**: Choose from multiple canvas widths (40, 60, 80, 100 characters)
-- 🌈 **Color Mode**: Toggle between B&W and Color ASCII character sets
-- ✍️ **Text Input**: Easy-to-use textarea for entering text to convert
-- 🖼️ **Real-time Generation**: Instant ASCII art generation with the click of a button
+- 🎨 **Multiple Canvas Sizes**: Choose from Small (60) to XX-Large (150) character widths
+- 🌈 **Character Set Options**: Toggle between Simple and Detailed character sets for varying levels of detail
+- 🖼️ **Image Input Options**: 
+  - Enter image URLs from the web
+  - Upload image files from your device
+  - Use built-in demo image
+- 📸 **Image Preview**: See your image before generating ASCII art
+- ⚡ **Real-time Generation**: Instant high-quality ASCII art generation
+- 🎯 **Advanced Algorithm**: Brightness-based pixel-to-ASCII mapping for realistic results
 - 📱 **Responsive Design**: Clean, modern UI that adapts to different screen sizes
+
+## How It Works
+
+ASCIIArtist converts images into ASCII art by:
+1. Loading your image (from URL or file upload)
+2. Analyzing each pixel's brightness
+3. Mapping brightness values to ASCII characters (darker pixels = denser characters)
+4. Generating detailed ASCII art that resembles the original image
 
 ## Screenshots
 
@@ -80,11 +93,22 @@ You can also manually trigger the deployment from the **Actions** tab.
 
 ## Usage
 
-1. **Select Canvas Size**: Choose your desired width from the dropdown (Small, Medium, Large, or X-Large)
-2. **Choose Color Mode**: Select between B&W or Color for different ASCII character sets
-3. **Enter Text**: Type or paste your text into the textarea
-4. **Generate**: Click the "Generate" button to create your ASCII art
-5. **View Result**: Your ASCII art appears in the canvas section below
+1. **Load an Image**:
+   - Enter an image URL in the text field, OR
+   - Click "Choose File" to upload an image from your device, OR
+   - Click "Load Demo Image" to try a built-in example
+2. **Adjust Settings**:
+   - **Canvas Size**: Select the width of your ASCII art (larger = more detail but takes more space)
+   - **Character Set**: Choose "Simple" for basic characters or "Detailed" for 70+ character variety
+3. **Generate**: Click the "Generate ASCII Art" button
+4. **View Result**: Your ASCII art appears in the canvas section below
+
+## Example Results
+
+The application can generate highly detailed ASCII art from photographs, creating effects similar to:
+- Hyper-realistic butterfly ASCII art with detailed wing patterns
+- Portrait ASCII art with recognizable facial features
+- Landscape ASCII art with depth and shading
 
 ## Scripts
 
