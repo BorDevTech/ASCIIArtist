@@ -12,6 +12,27 @@ import {
 } from '@chakra-ui/react'
 import { useState, useRef } from 'react'
 
+// Convert ASCII art text to SVG
+function asciiToSvg(asciiText: string): string {
+  const lines = asciiText.split('\n')
+  const charWidth = 7
+  const charHeight = 14
+  const width = Math.max(...lines.map(line => line.length)) * charWidth
+  const height = lines.length * charHeight
+  
+  let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`
+  svgContent += '<rect width="100%" height="100%" fill="white"/>'
+  svgContent += '<text font-family="monospace" font-size="12" fill="black">'
+  
+  lines.forEach((line, index) => {
+    const y = (index + 1) * charHeight
+    svgContent += `<tspan x="0" y="${y}">${line.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&/g, '&amp;')}</tspan>`
+  })
+  
+  svgContent += '</text></svg>'
+  return svgContent
+}
+
 // Advanced image-to-ASCII converter
 async function imageToAscii(
   imageSource: string | File,
@@ -94,9 +115,11 @@ async function imageToAscii(
 }
 
 export default function Home() {
+  const [textDescription, setTextDescription] = useState('')
   const [imageUrl, setImageUrl] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [asciiArt, setAsciiArt] = useState('')
+  const [asciiSvg, setAsciiSvg] = useState('')
   const [canvasSize, setCanvasSize] = useState('100')
   const [colorMode, setColorMode] = useState('color')
   const [isGenerating, setIsGenerating] = useState(false)
@@ -112,18 +135,28 @@ export default function Home() {
       const width = parseInt(canvasSize)
       const isColor = colorMode === 'color'
 
+      // Check if text description is provided (requires AI API integration)
+      if (textDescription.trim() && !imageFile && !imageUrl.trim()) {
+        setError('Text-to-image generation requires AI API integration. Please provide an image URL or upload an image file for now.')
+        setIsGenerating(false)
+        return
+      }
+
       let art = ''
       if (imageFile) {
         art = await imageToAscii(imageFile, width, isColor)
       } else if (imageUrl.trim()) {
         art = await imageToAscii(imageUrl, width, isColor)
       } else {
-        setError('Please provide an image URL or upload an image file')
+        setError('Please provide an image description, image URL, or upload an image file')
         setIsGenerating(false)
         return
       }
 
       setAsciiArt(art)
+      // Convert to SVG
+      const svg = asciiToSvg(art)
+      setAsciiSvg(svg)
     } catch (err) {
       setError('Failed to generate ASCII art. Please check your image source.')
       console.error(err)
@@ -137,6 +170,7 @@ export default function Home() {
     if (file) {
       setImageFile(file)
       setImageUrl('') // Clear URL when file is selected
+      setTextDescription('') // Clear text description
       
       // Create preview
       const reader = new FileReader()
@@ -154,6 +188,7 @@ export default function Home() {
     setImageUrl(url)
     if (url.trim()) {
       setImageFile(null) // Clear file when URL is entered
+      setTextDescription('') // Clear text description
       setPreviewUrl(url)
     } else {
       setPreviewUrl('')
@@ -288,6 +323,26 @@ export default function Home() {
             </Flex>
             
             <Box>
+              <Text fontSize="sm" mb={2}>Describe Image (AI generation - requires API):</Text>
+              <Input
+                placeholder="E.g., 'a butterfly on a flower' (Note: AI image generation not yet integrated)"
+                value={textDescription}
+                onChange={(e) => setTextDescription(e.target.value)}
+                size="md"
+              />
+              <Text fontSize="xs" color="gray.500" mt={1}>
+                Note: Text-to-image generation requires AI API integration (e.g., DALL-E, Stable Diffusion). 
+                For now, please use image URL or file upload.
+              </Text>
+            </Box>
+
+            <Flex align="center" gap={2}>
+              <Box w="100%" h="1px" bg="gray.300" />
+              <Text fontSize="sm" color="gray.500">OR</Text>
+              <Box w="100%" h="1px" bg="gray.300" />
+            </Flex>
+
+            <Box>
               <Text fontSize="sm" mb={2}>Image URL:</Text>
               <Input
                 placeholder="Enter image URL (e.g., https://example.com/image.jpg)"
@@ -373,7 +428,7 @@ export default function Home() {
         borderTop="2px solid"
         borderColor="gray.200"
       >
-        <Container maxW="container.xl" py={4} h="100%">
+        <Container maxW="100%" py={4} h="100%">
           <Box
             bg="white"
             p={4}
@@ -382,12 +437,30 @@ export default function Home() {
             borderColor="gray.200"
             h="100%"
             overflow="auto"
-            fontFamily="monospace"
-            fontSize="xs"
-            whiteSpace="pre"
-            lineHeight="1.0"
+            display="flex"
+            justifyContent="center"
+            alignItems="flex-start"
           >
-            {asciiArt || 'Your ASCII art will appear here...\n\nTip: Try these example images:\n- Butterfly: https://images.unsplash.com/photo-1526336024174-e58f5cdd8e13?w=800\n- Portrait: https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800\n- Landscape: https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800'}
+            {asciiSvg ? (
+              <Box dangerouslySetInnerHTML={{ __html: asciiSvg }} />
+            ) : (
+              <Box
+                fontFamily="monospace"
+                fontSize="xs"
+                whiteSpace="pre"
+                lineHeight="1.0"
+                color="gray.500"
+              >
+                Your ASCII art will appear here...
+                {'\n\n'}
+                Tip: Try these example images:
+                {'\n'}- Butterfly: https://images.unsplash.com/photo-1526336024174-e58f5cdd8e13?w=800
+                {'\n'}- Portrait: https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800
+                {'\n'}- Landscape: https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800
+                {'\n\n'}
+                Or use the &quot;Load Demo Image&quot; button above to test
+              </Box>
+            )}
           </Box>
         </Container>
       </Box>
