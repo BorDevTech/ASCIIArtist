@@ -63,6 +63,21 @@ npm run build
 npm start
 ```
 
+### Deploy to GitHub Pages
+
+This project includes a GitHub Actions workflow that automatically deploys the application to GitHub Pages when you push to the `main` branch.
+
+To enable GitHub Pages deployment:
+
+1. Go to your repository's **Settings** → **Pages**
+2. Under **Source**, select **GitHub Actions**
+3. Push your code to the `main` branch
+4. The workflow will automatically build and deploy your site
+
+The site will be available at: `https://<username>.github.io/<repository-name>/`
+
+You can also manually trigger the deployment from the **Actions** tab.
+
 ## Usage
 
 1. **Select Canvas Size**: Choose your desired width from the dropdown (Small, Medium, Large, or X-Large)
