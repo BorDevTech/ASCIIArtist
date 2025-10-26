@@ -163,37 +163,47 @@ export default function Home() {
   const loadDemoImage = () => {
     // Create a simple demo image using canvas
     const canvas = document.createElement('canvas')
-    canvas.width = 300
-    canvas.height = 200
+    const CANVAS_WIDTH = 300
+    const CANVAS_HEIGHT = 200
+    const CENTER_X = CANVAS_WIDTH / 2
+    const CENTER_Y = CANVAS_HEIGHT / 2
+    const FACE_RADIUS = 60
+    const EYE_RADIUS = 8
+    const SMILE_RADIUS = 30
+    
+    canvas.width = CANVAS_WIDTH
+    canvas.height = CANVAS_HEIGHT
     const ctx = canvas.getContext('2d')
     
     if (ctx) {
       // Create a gradient background
-      const gradient = ctx.createLinearGradient(0, 0, 300, 200)
+      const gradient = ctx.createLinearGradient(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
       gradient.addColorStop(0, '#1a1a1a')
       gradient.addColorStop(0.5, '#4a4a4a')
       gradient.addColorStop(1, '#8a8a8a')
       ctx.fillStyle = gradient
-      ctx.fillRect(0, 0, 300, 200)
+      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
       
       // Draw a circle (simple face)
       ctx.fillStyle = '#ffffff'
       ctx.beginPath()
-      ctx.arc(150, 100, 60, 0, Math.PI * 2)
+      ctx.arc(CENTER_X, CENTER_Y, FACE_RADIUS, 0, Math.PI * 2)
       ctx.fill()
       
       // Draw eyes
       ctx.fillStyle = '#000000'
       ctx.beginPath()
-      ctx.arc(130, 90, 8, 0, Math.PI * 2)
+      ctx.arc(CENTER_X - 20, CENTER_Y - 10, EYE_RADIUS, 0, Math.PI * 2)
       ctx.fill()
       ctx.beginPath()
-      ctx.arc(170, 90, 8, 0, Math.PI * 2)
+      ctx.arc(CENTER_X + 20, CENTER_Y - 10, EYE_RADIUS, 0, Math.PI * 2)
       ctx.fill()
       
       // Draw smile
+      ctx.strokeStyle = '#000000'
+      ctx.lineWidth = 2
       ctx.beginPath()
-      ctx.arc(150, 100, 30, 0, Math.PI)
+      ctx.arc(CENTER_X, CENTER_Y, SMILE_RADIUS, 0, Math.PI)
       ctx.stroke()
       
       // Convert to data URL and set
