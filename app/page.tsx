@@ -427,8 +427,9 @@ export default function Home() {
         overflow="auto"
         borderTop="2px solid"
         borderColor="gray.200"
+        minH="0"
       >
-        <Container maxW="100%" py={4} h="100%">
+        <Container maxW="container.xl" py={4} h="100%">
           <Box
             bg="white"
             p={4}
@@ -442,7 +443,16 @@ export default function Home() {
             alignItems="flex-start"
           >
             {asciiSvg ? (
-              <Box dangerouslySetInnerHTML={{ __html: asciiSvg }} />
+              <Box 
+                dangerouslySetInnerHTML={{ __html: asciiSvg }}
+                css={{
+                  '& svg': {
+                    maxWidth: '100%',
+                    height: 'auto',
+                    display: 'block'
+                  }
+                }}
+              />
             ) : (
               <Box
                 fontFamily="monospace"
