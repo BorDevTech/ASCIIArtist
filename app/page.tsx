@@ -251,7 +251,7 @@ export default function Home() {
 
   return (
     <Box h="100vh" display="flex" flexDirection="column">
-      <Container maxW="container.xl" py={4} flex="0 0 auto">
+      <Container maxW="container.xl" py={4} flex="0 0 auto" maxH="50vh" overflow="auto">
         <Stack gap={4} align="stretch">
           <Heading size="lg" textAlign="center">
             ASCII Artist - Image to ASCII Converter
@@ -384,11 +384,12 @@ export default function Home() {
                   borderColor="gray.200"
                   overflow="hidden"
                   maxW="300px"
+                  maxH="200px"
                 >
                   <img
                     src={previewUrl}
                     alt="Preview"
-                    style={{ width: '100%', height: 'auto', display: 'block' }}
+                    style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
                   />
                 </Box>
               </Box>
