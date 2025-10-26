@@ -160,6 +160,50 @@ export default function Home() {
     }
   }
 
+  const loadDemoImage = () => {
+    // Create a simple demo image using canvas
+    const canvas = document.createElement('canvas')
+    canvas.width = 300
+    canvas.height = 200
+    const ctx = canvas.getContext('2d')
+    
+    if (ctx) {
+      // Create a gradient background
+      const gradient = ctx.createLinearGradient(0, 0, 300, 200)
+      gradient.addColorStop(0, '#1a1a1a')
+      gradient.addColorStop(0.5, '#4a4a4a')
+      gradient.addColorStop(1, '#8a8a8a')
+      ctx.fillStyle = gradient
+      ctx.fillRect(0, 0, 300, 200)
+      
+      // Draw a circle (simple face)
+      ctx.fillStyle = '#ffffff'
+      ctx.beginPath()
+      ctx.arc(150, 100, 60, 0, Math.PI * 2)
+      ctx.fill()
+      
+      // Draw eyes
+      ctx.fillStyle = '#000000'
+      ctx.beginPath()
+      ctx.arc(130, 90, 8, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.beginPath()
+      ctx.arc(170, 90, 8, 0, Math.PI * 2)
+      ctx.fill()
+      
+      // Draw smile
+      ctx.beginPath()
+      ctx.arc(150, 100, 30, 0, Math.PI)
+      ctx.stroke()
+      
+      // Convert to data URL and set
+      const dataUrl = canvas.toDataURL('image/png')
+      setImageUrl(dataUrl)
+      setImageFile(null)
+      setPreviewUrl(dataUrl)
+    }
+  }
+
   return (
     <Box h="100vh" display="flex" flexDirection="column">
       <Container maxW="container.xl" py={4} flex="0 0 auto">
@@ -221,7 +265,17 @@ export default function Home() {
 
           {/* Image Input Section */}
           <Stack gap={3}>
-            <Heading size="sm">Image Source</Heading>
+            <Flex justify="space-between" align="center">
+              <Heading size="sm">Image Source</Heading>
+              <Button
+                size="sm"
+                variant="outline"
+                colorScheme="teal"
+                onClick={loadDemoImage}
+              >
+                Load Demo Image
+              </Button>
+            </Flex>
             
             <Box>
               <Text fontSize="sm" mb={2}>Image URL:</Text>
