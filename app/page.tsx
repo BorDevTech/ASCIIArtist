@@ -45,7 +45,10 @@ function generateAsciiArt(text: string, width: number, isColor: boolean): string
   }
 
   // Convert text to ASCII art with a border
-  const maxLineLength = Math.min(width, Math.max(...lines.map(l => l.length)))
+  const maxLineLength = Math.min(
+    width,
+    lines.reduce((max, line) => Math.max(max, line.length), 0)
+  )
   const border = asciiChars[0].repeat(maxLineLength + 4)
   
   const artLines = [border]
